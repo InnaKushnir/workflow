@@ -99,19 +99,23 @@ def run_workflow(workflow_id: int, workflow_service: WorkflowService = Depends()
     start_nodes = [node.id for node in workflow.nodes if node.type == NodeType.start]
     end_nodes = [node.id for node in workflow.nodes if node.type == NodeType.end]
     print(start_nodes, end_nodes)
+    print(111)
     if not start_nodes:
         return {"error": "No start node found"}
     if not end_nodes:
         return {"error": "No end node found"}
-    plt.figure(figsize=(10, 6))
-    nx.draw(G, with_labels=True)
-    plt.show()
+    # plt.figure(figsize=(10, 6))
+    # nx.draw(G, with_labels=True)
+    # plt.show()
 
     try:
         path = None
         for start_node in start_nodes:
+            print(start_node)
             for end_node in end_nodes:
+                print(end_node)
                 path = nx.shortest_path(G, source=start_node, target=end_node)
+                print(222, path)
                 if path:
                     break
             if path:

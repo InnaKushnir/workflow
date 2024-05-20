@@ -1,0 +1,8 @@
+.venv
+workflow.db
+.idea/
+__pycache__/
+alembic/__pycache__/
+alembic/versions/
+db/__init__.py
+db/__pycache__/

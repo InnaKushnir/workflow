@@ -71,8 +71,6 @@ class WorkflowService:
 
         if not start_node or not end_node:
             raise HTTPException(status_code=404, detail="Node not found")
-
-        # Валідація Start Node
         if start_node.workflow_id != workflow_id:
             raise HTTPException(status_code=400, detail="Start Node does not belong to the specified workflow.")
         if end_node.workflow_id != workflow_id:
@@ -105,6 +103,12 @@ class WorkflowService:
 
         elif start_node.type == NodeType.end:
             raise HTTPException(status_code=400, detail="End Node cannot have outgoing edges.")
+
+        # Нова валідація для end_node типу Condition
+        if end_node.type == NodeType.condition:
+            if start_node.type != NodeType.message:
+                raise HTTPException(status_code=400,
+                                    detail="End Node of type Condition can only have incoming edges from Nodes of type Message.")
 
         if end_node.type == NodeType.start:
             raise HTTPException(status_code=400, detail="Start Node cannot be an end node.")
