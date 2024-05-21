@@ -1,5 +1,5 @@
 from typing import List
-
+import rule_engine
 from fastapi import Depends, HTTPException
 
 import schemas
@@ -31,14 +31,19 @@ class WorkflowService:
         return db_workflow
 
     def create_node(self, workflow_id: int, node: NodeCreate) -> models.Node:
-
         if node.type == NodeType.message and not node.message:
             raise ValueError("Message Node must have a message.")
+        if node.type == NodeType.condition and not node.condition_expression:
+            raise ValueError("Condition Node must have a condition expression.")
 
-        db_node = models.Node(type=node.type,
-                              status=node.status,
-                              message=node.message,
-                              workflow_id=workflow_id)
+        db_node = models.Node(
+            type=node.type,
+            status=node.status,
+            message=node.message,
+            condition_text=node.condition_text,
+            condition_expression=node.condition_expression,
+            workflow_id=workflow_id
+        )
         self.db.add(db_node)
         self.db.commit()
         self.db.refresh(db_node)
@@ -71,6 +76,7 @@ class WorkflowService:
 
         if not start_node or not end_node:
             raise HTTPException(status_code=404, detail="Node not found")
+
         if start_node.workflow_id != workflow_id:
             raise HTTPException(status_code=400, detail="Start Node does not belong to the specified workflow.")
         if end_node.workflow_id != workflow_id:
@@ -104,14 +110,23 @@ class WorkflowService:
         elif start_node.type == NodeType.end:
             raise HTTPException(status_code=400, detail="End Node cannot have outgoing edges.")
 
-        # Нова валідація для end_node типу Condition
-        if end_node.type == NodeType.condition:
-            if start_node.type != NodeType.message:
-                raise HTTPException(status_code=400,
-                                    detail="End Node of type Condition can only have incoming edges from Nodes of type Message.")
-
         if end_node.type == NodeType.start:
             raise HTTPException(status_code=400, detail="Start Node cannot be an end node.")
+
+        if end_node.type == NodeType.condition:
+
+            if not start_node.type == NodeType.message:
+                raise HTTPException(status_code=400, detail="Condition Node must be preceded by a Message Node.")
+
+
+            condition = end_node.condition_expression
+            context = {'message': start_node.message}
+            rule = rule_engine.Rule(condition)
+
+            if rule.evaluate(context):
+                edge.status = "Yes"
+            else:
+                edge.status = "No"
 
         db_edge = models.Edge(
             workflow_id=workflow_id,

@@ -46,6 +46,8 @@ class Node(Base):
     type = Column(SQLAEnum(NodeType))
     status = Column(SQLAEnum(NodeStatus), nullable=True)
     message = Column(String, nullable=True)
+    condition_text = Column(String, nullable=True)
+    condition_expression = Column(String, nullable=True)
 
     workflow = relationship("Workflow", back_populates="nodes")
     outgoing_edges = relationship("Edge", foreign_keys="[Edge.start_node_id]", back_populates="start_node")

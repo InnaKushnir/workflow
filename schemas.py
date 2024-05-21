@@ -27,6 +27,8 @@ class NodeBase(BaseModel):
     type: NodeType
     status: Optional[NodeStatus] = None
     message: Optional[str] = None
+    condition_text: Optional[str] = None
+    condition_expression: Optional[str] = None
 
 
 class NodeCreate(NodeBase):
