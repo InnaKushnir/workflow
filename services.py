@@ -56,6 +56,9 @@ class WorkflowService:
     ) -> List[models.Node]:
         return self.db.query(models.Node).offset(skip).limit(limit).all()
 
+    def get_node(self, node_id: int):
+        return self.db.query(models.Node).filter(models.Node.id == node_id).first()
+
     def update_node(self, node_id: int, node: NodeCreate) -> models.Node:
         db_node = self.db.query(models.Node).filter(models.Node.id == node_id).first()
         for key, value in node.dict().items():
@@ -69,6 +72,25 @@ class WorkflowService:
         self.db.delete(db_node)
         self.db.commit()
         return db_node
+
+    def get_incoming_edges(self, node_id: int):
+        return self.db.query(models.Edge).filter(models.Edge.end_node_id == node_id).all()
+
+    def find_last_message_node(self, node):
+        incoming_edges = self.get_incoming_edges(node.id)
+
+        for edge in incoming_edges:
+            start_node = self.get_node(edge.start_node_id)
+
+            if start_node.type == NodeType.message:
+                return start_node
+
+            if start_node.type == NodeType.condition:
+                message_node = self.find_last_message_node(start_node)
+                if message_node:
+                    return message_node
+
+        return None
 
     def create_edge(self, workflow_id: int, edge: schemas.EdgeCreate) -> models.Edge:
         start_node = self.db.query(models.Node).get(edge.start_node_id)

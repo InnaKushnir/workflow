@@ -1,4 +1,5 @@
 import networkx as nx
+import rule_engine
 from fastapi import FastAPI, Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from typing_extensions import Union
@@ -56,6 +57,16 @@ def get_all_nodes(nodes_service: WorkflowService = Depends()):
     return nodes_service.get_all_nodes()
 
 
+@app.get("/nodes/{nodes_id}/", response_model=schemas.Node)
+def get_node(node_id: Union[int, None] = None, node_service: WorkflowService = Depends()):
+    db_node = node_service.get_node(node_id=node_id)
+
+    if db_node is None:
+        raise HTTPException(status_code=404, detail="Author not found")
+
+    return db_node
+
+
 @app.put("/nodes/{node_id}/", response_model=schemas.Node)
 def update_node(node_id: int, node: schemas.NodeCreate, node_service: WorkflowService = Depends()):
     return node_service.update_node(node_id, node)
@@ -98,24 +109,17 @@ def run_workflow(workflow_id: int, workflow_service: WorkflowService = Depends()
 
     start_nodes = [node.id for node in workflow.nodes if node.type == NodeType.start]
     end_nodes = [node.id for node in workflow.nodes if node.type == NodeType.end]
-    print(start_nodes, end_nodes)
-    print(111)
+
     if not start_nodes:
         return {"error": "No start node found"}
     if not end_nodes:
         return {"error": "No end node found"}
-    # plt.figure(figsize=(10, 6))
-    # nx.draw(G, with_labels=True)
-    # plt.show()
 
     try:
         path = None
         for start_node in start_nodes:
-            print(start_node)
             for end_node in end_nodes:
-                print(end_node)
                 path = nx.shortest_path(G, source=start_node, target=end_node)
-                print(222, path)
                 if path:
                     break
             if path:
@@ -125,7 +129,30 @@ def run_workflow(workflow_id: int, workflow_service: WorkflowService = Depends()
 
         detailed_path = []
         for node_id in path:
-            node = workflow_service.db.query(models.Node).filter(models.Node.id == node_id).first()
+            node = workflow_service.get_node(node_id)
+
+            if node.type == NodeType.condition:
+                last_message_node = workflow_service.find_last_message_node(node)
+                if not last_message_node:
+                    raise HTTPException(status_code=400, detail="Condition Node must have a preceding Message Node.")
+
+                condition = node.condition_expression
+                context = {'message': last_message_node.message}
+                rule = rule_engine.Rule(condition)
+
+                if rule.evaluate(context):
+                    edge = workflow_service.db.query(models.Edge).filter(
+                        models.Edge.start_node_id == last_message_node.id,
+                        models.Edge.end_node_id == node.id
+                    ).first()
+                    edge.status = "Yes"
+                else:
+                    edge = workflow_service.db.query(models.Edge).filter(
+                        models.Edge.start_node_id == last_message_node.id,
+                        models.Edge.end_node_id == node.id
+                    ).first()
+                    edge.status = "No"
+
             detailed_path.append({
                 "id": node.id,
                 "type": node.type,
