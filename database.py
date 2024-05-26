@@ -1,3 +1,4 @@
+from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -13,8 +14,10 @@ AsyncSessionLocal = sessionmaker(
     autoflush=False,
 )
 
+metadata = MetaData()
 Base = declarative_base()
 
 async def get_session() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         yield session
+
