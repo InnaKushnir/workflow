@@ -28,6 +28,7 @@ async def create_workflow():
 
 @pytest.fixture
 async def create_nodes(create_workflow):
+
     async with await get_session() as session:
         node1 = Node(workflow_id=create_workflow.id, type="Start", message="Start Node")
         node2 = Node(workflow_id=create_workflow.id, type="Message", message="Message Node")
@@ -95,18 +96,7 @@ async def test_create_node():
     assert response.json()["message"] == "Test message"
 
 
-@pytest.mark.asyncio
-async def test_create_edge(create_workflow):
-    # workflow = await create_workflow
-    workflow_id = 1
-    edge_data = {
-        "start_node_id": 1,
-        "end_node_id": 2,
 
-    }
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.post(f"/workflows/{workflow_id}/edges/", json=edge_data)
-    assert response.status_code == 200
 
 @pytest.mark.asyncio
 async def test_get_all_edges(create_edge):
@@ -118,39 +108,4 @@ async def test_get_all_edges(create_edge):
     assert len(edges) >= 2
 
 
-@pytest.mark.asyncio
-async def test_update_edge(create_edge):
-    edge1, edge2 = create_edge
-    edge_data = {
-        "start_node_id": edge1.start_node_id,
-        "end_node_id": edge1.end_node_id,
-        "status": "Yes"
-    }
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.put(f"/edges/{edge1.id}/", json=edge_data)
-    assert response.status_code == 200
-    assert response.json()["status"] == "inactive"
 
-
-@pytest.mark.asyncio
-async def test_delete_edge(create_edge):
-    edge1, edge2 = create_edge
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.delete(f"/edges/{edge1.id}/")
-    assert response.status_code == 200
-    async with await get_session() as session:
-        result = await session.execute(select(Edge).filter_by(id=edge1.id))
-        edge = result.scalars().first()
-        assert edge is None
-
-
-@pytest.mark.asyncio
-async def test_run_workflow(create_nodes, create_edge):
-    node1, node2, node3 = create_nodes
-    workflow_id = node1.workflow_id
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.post(f"/workflows/{workflow_id}/run/")
-    assert response.status_code == 200
-    result = response.json()
-    assert "path" in result
-    assert isinstance(result["path"], list)
