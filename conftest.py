@@ -1,12 +1,10 @@
 import pytest
-import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from main import app
 from database import Base, get_session
-
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test_workflow.db"
 engine = create_async_engine(
@@ -32,3 +30,4 @@ async def async_client(db):
     app.dependency_overrides[get_session] = override_get_session
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
+    app.dependency_overrides.clear()

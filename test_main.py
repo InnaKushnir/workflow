@@ -17,8 +17,11 @@ async def clear_database():
 
 @pytest.fixture(scope="function", autouse=True)
 async def clear_database_fixture():
-    await clear_database()
-
+    async with get_session() as session:
+        await clear_database(session)
+    yield
+    async with get_session() as session:
+        await clear_database(session)
 @pytest.fixture
 async def create_workflow():
     async for session in get_session():
@@ -36,14 +39,13 @@ async def create_nodes(create_workflow):
         node2 = Node(workflow_id=workflow.id, type="Message", message="Message Node")
         node3 = Node(workflow_id=workflow.id, type="End")
         node4 = Node(workflow_id=workflow.id, type="Condition", condition_text="Hello", condition_expression="Hello")
-        session.add_all([node1, node2, node3])
+        session.add_all([node1, node2, node3, node4])
         await session.commit()
         await session.refresh(node1)
         await session.refresh(node2)
         await session.refresh(node3)
         await session.refresh(node4)
         return node1, node2, node3, node4
-
 
 @pytest.fixture
 async def create_edge(create_nodes):
@@ -58,7 +60,6 @@ async def create_edge(create_nodes):
         await session.refresh(edge2)
         await session.refresh(edge3)
         return edge1, edge2, edge3
-
 
 @pytest.mark.asyncio
 async def test_create_and_get_all_workflows():
@@ -78,18 +79,19 @@ async def test_create_and_get_all_workflows():
         assert any(workflow["name"] == "Test Workflow 1" for workflow in workflows)
         assert any(workflow["name"] == "Test Workflow 2" for workflow in workflows)
 
-
 @pytest.mark.asyncio
 async def test_get_workflow():
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.post("/workflows/", json={"name": "Test Workflow", "description": "Test workflow"})
+        response = await ac.post("/workflows/", json={"name": "Test Workflow"})
         assert response.status_code == 200
-    if response.status_code == 404:
-        assert response.json() == {"detail": "Workflow not found"}
-    else:
-        assert response.status_code == 200
-        assert "name" in response.json()
+        workflow_id = response.json()["id"]
 
+        response = await ac.get(f"/workflows/{workflow_id}/")
+        if response.status_code == 404:
+            assert response.json() == {"detail": "Workflow not found"}
+        else:
+            assert response.status_code == 200
+            assert "name" in response.json()
 
 @pytest.mark.asyncio
 async def test_create_node(create_workflow):
@@ -104,7 +106,6 @@ async def test_create_node(create_workflow):
         response = await ac.post(f"/workflows/{workflow_id}/nodes/", json=node_data)
     assert response.status_code == 200
     assert response.json()["message"] == "Test message"
-
 
 @pytest.mark.asyncio
 async def test_create_edge(create_workflow):
@@ -123,7 +124,6 @@ async def test_create_edge(create_workflow):
     }
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
-
         response1 = await ac.post(f"/workflows/{workflow_id}/nodes/", json=node1_data)
         assert response1.status_code == 200
         node1 = response1.json()
@@ -139,28 +139,38 @@ async def test_create_edge(create_workflow):
         response = await ac.post(f"/workflows/{workflow_id}/edges/", json=edge_data)
         assert response.status_code == 200
 
+
 @pytest.mark.asyncio
 async def test_get_all_edges(create_edge):
+    edge1, edge2, edge3 = await create_edge
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.get("/edges/")
+
     assert response.status_code == 200
     edges = response.json()
     assert isinstance(edges, list)
     assert len(edges) >= 2
 
+    for edge in edges:
+        assert edge["start_node_id"] is not None, f"Edge {edge['id']} has start_node_id as None"
+        assert edge["end_node_id"] is not None, f"Edge {edge['id']} has end_node_id as None"
+
+
 
 @pytest.mark.asyncio
 async def test_update_edge(create_edge):
-    edge1, edge2, edge3 = await create_edge
+    edge1, _, _ = await create_edge
     edge_data = {
         "start_node_id": edge1.start_node_id,
         "end_node_id": edge1.end_node_id,
-
     }
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.put(f"/edges/{edge1.id}/", json=edge_data)
-    assert response.status_code == 200
 
+        assert response.status_code == 200
+        response_json = response.json()
+        assert "start_node_id" in response_json and response_json["start_node_id"] is not None
+        assert "end_node_id" in response_json and response_json["end_node_id"] is not None
 
 
 
