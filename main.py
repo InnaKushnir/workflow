@@ -86,6 +86,26 @@ def create_edge(workflow_id: int, edge: schemas.EdgeCreate, edge_service: Workfl
 def get_all_edges(edge_service: WorkflowService = Depends()):
     return edge_service.get_all_edges()
 
+
+@app.get("/nodes/{node_id}/", response_model=schemas.Node)
+def get_node(node_id: Union[int, None] = None, node_service: WorkflowService = Depends()):
+    db_node = node_service.get_node(node_id=node_id)
+
+    if db_node is None:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    return db_node
+
+@app.get("/edges/{edge_id}/", response_model=schemas.Edge)
+def get_edge_by_id(edge_id: int, edge_service: WorkflowService = Depends()):
+    """
+    Retrieve an edge by its ID.
+    """
+    db_edge = edge_service.get_edge_by_id(edge_id)
+    if not db_edge:
+        raise HTTPException(status_code=404, detail="Edge not found")
+    return db_edge
+
 @app.put("/edges/{edge_id}/", response_model=schemas.Edge)
 def update_edge(edge_id: int, edge: schemas.EdgeCreate, edge_service: WorkflowService = Depends()):
     return edge_service.update_edge(edge_id, edge)
@@ -163,5 +183,3 @@ def run_workflow(workflow_id: int, workflow_service: WorkflowService = Depends()
         return {"path": detailed_path}
     except nx.NetworkXNoPath:
         return {"error": "No path found from start to end node"}
-
-

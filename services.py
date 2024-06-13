@@ -161,8 +161,17 @@ class WorkflowService:
         self.db.refresh(db_edge)
         return db_edge
 
+    def get_edge_by_id(self, edge_id: int) -> models.Edge:
+        db_edge = self.db.query(models.Edge).filter(models.Edge.id == edge_id).first()
+        if not db_edge:
+            raise HTTPException(status_code=404, detail="Edge not found")
+        return db_edge
+
     def update_edge(self, edge_id: int, edge: EdgeCreate) -> models.Edge:
         db_edge = self.db.query(models.Edge).filter(models.Edge.id == edge_id).first()
+        if not db_edge:
+            raise HTTPException(status_code=404, detail="Edge not found")
+
         for key, value in edge.dict().items():
             setattr(db_edge, key, value)
         self.db.commit()
