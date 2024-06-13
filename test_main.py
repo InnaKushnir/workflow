@@ -105,14 +105,22 @@ def test_get_node():
 
     assert create_node_response.status_code == 200, f"Unexpected status code: {create_node_response.status_code}, response: {create_node_response.json()}"
     response_json = create_node_response.json()
-    response_json = create_node_response.json()
     print(f"Create node response: {response_json}")
 
     node_id = response_json["id"]
-    get_node_response = client.get(f"/nodes/1/")
-    assert get_node_response.status_code == 200, f"Unexpected status code: {get_node_response.status_code}, response: {get_node_response.json()}"
+    get_node_response = client.get(f"/nodes/{node_id}/")
     node_json = get_node_response.json()
     print(f"Get node response: {node_json}")
+
+    assert node_json["id"] == node_id, f"Expected node ID: {node_id}, but got: {node_json['id']}"
+    assert node_json["type"] == node_data[
+        "type"], f"Expected node type: {node_data['type']}, but got: {node_json['type']}"
+    assert node_json["status"] == node_data[
+        "status"], f"Expected node status: {node_data['status']}, but got: {node_json['status']}"
+    assert node_json["message"] == node_data[
+        "message"], f"Expected node message: {node_data['message']}, but got: {node_json['message']}"
+    assert node_json[
+               "workflow_id"] == workflow_id, f"Expected workflow ID: {workflow_id}, but got: {node_json['workflow_id']}"
 
 
 
