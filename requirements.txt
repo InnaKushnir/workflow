@@ -8,3 +8,5 @@ databases
 httpx
 pytest
 pytest-asyncio
+networkx
+aiosqlite

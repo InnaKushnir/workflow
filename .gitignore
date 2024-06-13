@@ -6,3 +6,8 @@ alembic/__pycache__/
 alembic/versions/
 db/__init__.py
 db/__pycache__/
+test_workflow.db
+test.db
+venv/
+
+

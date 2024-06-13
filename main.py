@@ -3,7 +3,7 @@ import rule_engine
 from fastapi import FastAPI, Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from typing_extensions import Union
-import matplotlib.pyplot as plt
+
 
 from db import models
 from typing import List
