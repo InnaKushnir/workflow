@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from db.models import Base
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test_workflow.db"
+# SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
@@ -15,6 +16,5 @@ def override_get_db():
         yield db
     finally:
         db.close()
-
 
 Base.metadata.create_all(bind=engine)

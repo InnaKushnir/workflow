@@ -3,7 +3,7 @@ import rule_engine
 from fastapi import FastAPI, Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from typing_extensions import Union
-import matplotlib.pyplot as plt
+
 
 from db import models
 from typing import List
@@ -57,7 +57,7 @@ def get_all_nodes(nodes_service: WorkflowService = Depends()):
     return nodes_service.get_all_nodes()
 
 
-@app.get("/nodes/{nodes_id}/", response_model=schemas.Node)
+@app.get("/nodes/{node_id}/", response_model=schemas.Node)
 def get_node(node_id: Union[int, None] = None, node_service: WorkflowService = Depends()):
     db_node = node_service.get_node(node_id=node_id)
 
