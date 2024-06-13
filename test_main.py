@@ -86,6 +86,69 @@ def test_create_and_get_nodes():
     created_node_present = any(node["id"] == created_node_id for node in nodes)
     assert created_node_present, f"Created node with ID {created_node_id} not found in the list of nodes"
 
+def test_create_edge(client):
+    workflow_data = {
+        "name": "Test Workflow",
+        "description": "A test workflow"
+    }
+    create_workflow_response = client.post("/workflows/", json=workflow_data)
+    assert create_workflow_response.status_code == 200
+    workflow_id = create_workflow_response.json()["id"]
+
+    node1_data = {
+        "type": "Start",
+        "status": "pending",
+        "message": "Start node"
+    }
+    node2_data = {
+        "type": "End",
+        "status": "pending",
+        "message": "End node"
+    }
+    node1_response = client.post(f"/workflows/{workflow_id}/nodes/", json=node1_data)
+    assert node1_response.status_code == 200
+    node1_id = node1_response.json()["id"]
+
+    node2_response = client.post(f"/workflows/{workflow_id}/nodes/", json=node2_data)
+    assert node2_response.status_code == 200
+    node2_id = node2_response.json()["id"]
+
+    edge_data = {
+        "start_node_id": node1_id,
+        "end_node_id": node2_id,
+        "status": "Yes"
+    }
+    create_edge_response = client.post(f"/workflows/{workflow_id}/edges/", json=edge_data)
+    assert create_edge_response.status_code == 200
+    created_edge_id = create_edge_response.json()["id"]
+    assert create_edge_response.json()["status"] == edge_data["status"]
+
+    edge_data_same_start_node = {
+        "start_node_id": node1_id,
+        "end_node_id": node2_id,
+        "status": "Yes"
+    }
+    response_same_start_node = client.post(f"/workflows/{workflow_id}/edges/", json=edge_data_same_start_node)
+    assert response_same_start_node.status_code == 400
+    assert "Condition Node already has an outgoing edge with status 'Yes'" in response_same_start_node.json()["detail"]
+
+    node3_data = {
+        "type": "Message",
+        "status": "pending",
+        "message": "Message node"
+    }
+    node3_response = client.post(f"/workflows/{workflow_id}/nodes/", json=node3_data)
+    assert node3_response.status_code == 200
+    node3_id = node3_response.json()["id"]
+
+    edge_data_invalid_start_node = {
+        "start_node_id": node3_id,
+        "end_node_id": node2_id,
+        "status": "Yes"
+    }
+    response_invalid_start_node = client.post(f"/workflows/{workflow_id}/edges/", json=edge_data_invalid_start_node)
+    assert response_invalid_start_node.status_code == 400
+    assert "Condition Node must be preceded by a Message Node" in response_invalid_start_node.json()["detail"]
 
 def test_get_node():
     workflow_data = {
