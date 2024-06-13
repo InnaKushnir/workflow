@@ -150,6 +150,105 @@ def test_create_edge(client):
     assert response_invalid_start_node.status_code == 400
     assert "Condition Node must be preceded by a Message Node" in response_invalid_start_node.json()["detail"]
 
+def test_create_edge_start_node():
+
+    workflow_data = {
+        "name": "Test Workflow",
+        "description": "A test workflow"
+    }
+    create_workflow_response = client.post("/workflows/", json=workflow_data)
+    assert create_workflow_response.status_code == 200
+    workflow_id = create_workflow_response.json()["id"]
+
+    node_data = {
+        "type": "Start",
+        "status": "pending",
+        "message": "Start node"
+    }
+    create_node_response = client.post(f"/workflows/{workflow_id}/nodes/", json=node_data)
+    assert create_node_response.status_code == 200
+    start_node_id = create_node_response.json()["id"]
+
+    node2_data = {
+        "type": "End",
+        "status": "pending",
+        "message": "End node"
+    }
+    create_node2_response = client.post(f"/workflows/{workflow_id}/nodes/", json=node2_data)
+    assert create_node2_response.status_code == 200
+    end_node_id = create_node2_response.json()["id"]
+
+    edge_data = {
+        "start_node_id": start_node_id,
+        "end_node_id": end_node_id,
+        "status": "Yes"
+    }
+    create_edge_response = client.post(f"/workflows/{workflow_id}/edges/", json=edge_data)
+    assert create_edge_response.status_code == 200
+
+    edge_data_invalid = {
+        "start_node_id": start_node_id,
+        "end_node_id": end_node_id,
+        "status": "No"
+    }
+    response_invalid = client.post(f"/workflows/{workflow_id}/edges/", json=edge_data_invalid)
+    assert response_invalid.status_code == 400
+    assert "Start Node can only have one outgoing edge" in response_invalid.json()["detail"]
+
+def test_create_edge_message_node():
+    workflow_data = {
+        "name": "Test Workflow",
+        "description": "A test workflow"
+    }
+    create_workflow_response = client.post("/workflows/", json=workflow_data)
+    assert create_workflow_response.status_code == 200
+    workflow_id = create_workflow_response.json()["id"]
+
+    node_data = {
+        "type": "Message",
+        "status": "pending",
+        "message": "Message node"
+    }
+    create_node_response = client.post(f"/workflows/{workflow_id}/nodes/", json=node_data)
+    assert create_node_response.status_code == 200
+    message_node_id = create_node_response.json()["id"]
+
+    # Створення End Node
+    node2_data = {
+        "type": "End",
+        "status": "pending",
+        "message": "End node"
+    }
+    create_node2_response = client.post(f"/workflows/{workflow_id}/nodes/", json=node2_data)
+    assert create_node2_response.status_code == 200
+    end_node_id = create_node2_response.json()["id"]
+
+    edge_data = {
+        "start_node_id": message_node_id,
+        "end_node_id": end_node_id,
+        "status": "Yes"
+    }
+    create_edge_response = client.post(f"/workflows/{workflow_id}/edges/", json=edge_data)
+    assert create_edge_response.status_code == 200
+
+    node3_data = {
+        "type": "Start",
+        "status": "pending",
+        "message": "Start node"
+    }
+    create_node3_response = client.post(f"/workflows/{workflow_id}/nodes/", json=node3_data)
+    assert create_node3_response.status_code == 200
+    start_node_id = create_node3_response.json()["id"]
+
+    edge_data_invalid_start = {
+        "start_node_id": start_node_id,
+        "end_node_id": end_node_id,
+        "status": "Yes"
+    }
+    response_invalid_start = client.post(f"/workflows/{workflow_id}/edges/", json=edge_data_invalid_start)
+    assert response_invalid_start.status_code == 400
+    assert "Condition Node must be preceded by a Message Node" in response_invalid_start.json()["detail"]
+
 def test_get_node():
     workflow_data = {
         "name": "Test Workflow",
