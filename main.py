@@ -29,11 +29,17 @@ def say_hello(name: str):
 
 @app.get("/workflows/", response_model=List[schemas.Workflow])
 def get_all_workflow(workflow_service: WorkflowService = Depends()):
+    """
+        Retrieve all workflows.
+    """
     return workflow_service.get_all_workflow()
 
 
 @app.get("/workflows/{workflow_id}/", response_model=schemas.Workflow)
 def get_workflow(workflow_id: Union[int, None] = None, workflow_service: WorkflowService = Depends()):
+    """
+        Retrieve a workflow by its ID.
+    """
     db_workflow = workflow_service.get_workflow(workflow_id=workflow_id)
 
     if db_workflow is None:
@@ -44,22 +50,34 @@ def get_workflow(workflow_id: Union[int, None] = None, workflow_service: Workflo
 
 @app.post("/workflows/", response_model=schemas.Workflow)
 def create_workflow(workflow: schemas.WorkflowCreate, workflow_service: WorkflowService = Depends()):
+    """
+        Create a new workflow.
+    """
 
     return workflow_service.create_workflow(workflow=workflow)
 
 
 @app.post("/workflows/{workflow_id}/nodes/", response_model=schemas.Node)
 def create_node(workflow_id: int, node: schemas.NodeCreate, node_service: WorkflowService = Depends()):
+    """
+        Create a new node within a workflow.
+    """
     return node_service.create_node(workflow_id, node)
 
 
 @app.get("/nodes/", response_model=List[schemas.Node])
 def get_all_nodes(nodes_service: WorkflowService = Depends()):
+    """
+        Retrieve all nodes.
+    """
     return nodes_service.get_all_nodes()
 
 
 @app.get("/nodes/{node_id}/", response_model=schemas.Node)
 def get_node(node_id: Union[int, None] = None, node_service: WorkflowService = Depends()):
+    """
+        Retrieve a node by its ID.
+    """
     db_node = node_service.get_node(node_id=node_id)
 
     if db_node is None:
@@ -70,33 +88,36 @@ def get_node(node_id: Union[int, None] = None, node_service: WorkflowService = D
 
 @app.put("/nodes/{node_id}/", response_model=schemas.Node)
 def update_node(node_id: int, node: schemas.NodeCreate, node_service: WorkflowService = Depends()):
+    """
+        Update an existing node by its ID.
+    """
     return node_service.update_node(node_id, node)
 
 
 @app.delete("/nodes/{node_id}/", response_model=schemas.Node)
 def delete_node(node_id: int, node_service: WorkflowService = Depends()):
+    """
+        Delete a node by its ID.
+    """
     node_service.delete_edge(node_id)
     return JSONResponse(content={"message": "Node successfully deleted"})
 
 
 @app.post("/workflows/{workflow_id}/edges/", response_model=schemas.Edge)
 def create_edge(workflow_id: int, edge: schemas.EdgeCreate, edge_service: WorkflowService = Depends()):
+    """
+        Create a new edge within a workflow.
+    """
     return edge_service.create_edge(workflow_id, edge)
 
 
 @app.get("/edges/", response_model=List[schemas.Edge])
 def get_all_edges(edge_service: WorkflowService = Depends()):
+    """
+        Retrieve all edges.
+    """
     return edge_service.get_all_edges()
 
-
-@app.get("/nodes/{node_id}/", response_model=schemas.Node)
-def get_node(node_id: Union[int, None] = None, node_service: WorkflowService = Depends()):
-    db_node = node_service.get_node(node_id=node_id)
-
-    if db_node is None:
-        raise HTTPException(status_code=404, detail="Node not found")
-
-    return db_node
 
 @app.get("/edges/{edge_id}/", response_model=schemas.Edge)
 def get_edge_by_id(edge_id: int, edge_service: WorkflowService = Depends()):
@@ -110,17 +131,26 @@ def get_edge_by_id(edge_id: int, edge_service: WorkflowService = Depends()):
 
 @app.put("/edges/{edge_id}/", response_model=schemas.Edge)
 def update_edge(edge_id: int, edge: schemas.EdgeCreate, edge_service: WorkflowService = Depends()):
+    """
+        Update an existing edge by its ID.
+    """
     return edge_service.update_edge(edge_id, edge)
 
 
 @app.delete("/edges/{edge_id}/", response_model=schemas.Edge)
 def delete_edge(edge_id: int, edge_service: WorkflowService = Depends()):
+    """
+            Delete an existing edge by its ID.
+    """
     edge_service.delete_edge(edge_id)
     return JSONResponse(content={"message": "Edge successfully deleted"})
 
 
 @app.post("/workflows/{workflow_id}/run/")
 def run_workflow(workflow_id: int, workflow_service: WorkflowService = Depends()):
+    """
+        Execute a workflow and find the shortest path from a start node to an end node.
+    """
     workflow = workflow_service.get_workflow(workflow_id)
     G = nx.DiGraph()
 
