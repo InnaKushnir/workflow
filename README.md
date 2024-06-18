@@ -21,6 +21,7 @@ Endpoints for managing workflows, allowing users to create, update, and delete w
 ### Node Management
 
 - **Add Node**: Endpoint to add new nodes to the workflow. The supported node types are Start, Message, Condition, and End.
+- Use such condition_expression "message.startswith('test')", "message == 'Hello World'" or other.
 
 ### Node Configuration
 
