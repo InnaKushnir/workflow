@@ -140,7 +140,6 @@ class WorkflowService:
             if not start_node.type == NodeType.message:
                 raise HTTPException(status_code=400, detail="Condition Node must be preceded by a Message Node.")
 
-
             condition = end_node.condition_expression
             context = {'message': start_node.message}
             rule = rule_engine.Rule(condition)

@@ -2,6 +2,7 @@ import networkx as nx
 import rule_engine
 from fastapi import FastAPI, Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
+from starlette.responses import JSONResponse
 from typing_extensions import Union
 
 
@@ -62,7 +63,7 @@ def get_node(node_id: Union[int, None] = None, node_service: WorkflowService = D
     db_node = node_service.get_node(node_id=node_id)
 
     if db_node is None:
-        raise HTTPException(status_code=404, detail="Author not found")
+        raise HTTPException(status_code=404, detail="Node not found")
 
     return db_node
 
@@ -74,7 +75,8 @@ def update_node(node_id: int, node: schemas.NodeCreate, node_service: WorkflowSe
 
 @app.delete("/nodes/{node_id}/", response_model=schemas.Node)
 def delete_node(node_id: int, node_service: WorkflowService = Depends()):
-    return node_service.delete_node(node_id)
+    node_service.delete_edge(node_id)
+    return JSONResponse(content={"message": "Node successfully deleted"})
 
 
 @app.post("/workflows/{workflow_id}/edges/", response_model=schemas.Edge)
@@ -113,7 +115,8 @@ def update_edge(edge_id: int, edge: schemas.EdgeCreate, edge_service: WorkflowSe
 
 @app.delete("/edges/{edge_id}/", response_model=schemas.Edge)
 def delete_edge(edge_id: int, edge_service: WorkflowService = Depends()):
-    return edge_service.delete_edge(edge_id)
+    edge_service.delete_edge(edge_id)
+    return JSONResponse(content={"message": "Edge successfully deleted"})
 
 
 @app.post("/workflows/{workflow_id}/run/")
