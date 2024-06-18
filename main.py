@@ -139,19 +139,25 @@ def run_workflow(workflow_id: int, workflow_service: WorkflowService = Depends()
         return {"error": "No end node found"}
 
     try:
-        path = None
+        shortest_path = None
+        shortest_length = float('inf')
+
         for start_node in start_nodes:
             for end_node in end_nodes:
-                path = nx.shortest_path(G, source=start_node, target=end_node)
-                if path:
-                    break
-            if path:
-                break
-        if not path:
+                try:
+                    path = nx.shortest_path(G, source=start_node, target=end_node)
+                    path_length = len(path)
+                    if path_length < shortest_length:
+                        shortest_length = path_length
+                        shortest_path = path
+                except nx.NetworkXNoPath:
+                    continue
+
+        if not shortest_path:
             return {"error": "No path found from start to end node"}
 
         detailed_path = []
-        for node_id in path:
+        for node_id in shortest_path:
             node = workflow_service.get_node(node_id)
 
             if node.type == NodeType.condition:
@@ -186,3 +192,4 @@ def run_workflow(workflow_id: int, workflow_service: WorkflowService = Depends()
         return {"path": detailed_path}
     except nx.NetworkXNoPath:
         return {"error": "No path found from start to end node"}
+

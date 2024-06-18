@@ -1,9 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-
+from db.models import Base
 from main import app, get_db
-from db.models import Base, Workflow
 from test_db import override_get_db, TestingSessionLocal
 
 app.dependency_overrides[get_db] = override_get_db
@@ -13,7 +12,6 @@ client = TestClient(app)
 
 @pytest.fixture(scope="function", autouse=True)
 def setup_and_teardown():
-
     Base.metadata.create_all(bind=TestingSessionLocal().get_bind())
     yield
 
@@ -27,7 +25,8 @@ def create_workflow(client, name="Test Workflow", description="A test workflow")
     return response.json()
 
 
-def create_node(client, workflow_id, node_type="Start", status="pending", message="Start node", condition_expression=None):
+def create_node(client, workflow_id, node_type="Start", status="pending", message="Start node",
+                condition_expression=None):
     node_data = {"type": node_type, "status": status, "message": message}
     if condition_expression:
         node_data["condition_expression"] = condition_expression
@@ -41,6 +40,7 @@ def create_edge(client, workflow_id, start_node_id, end_node_id, status="Yes"):
     response = client.post(f"/workflows/{workflow_id}/edges/", json=edge_data)
     assert response.status_code == 200
     return response.json()
+
 
 def test_create_get_all_workflow():
     workflow = create_workflow(client)
@@ -220,7 +220,6 @@ def test_get_edge_by_id():
     assert response.status_code == 200
 
 
-
 def test_run_workflow_with_complex_scenario():
     workflow = create_workflow(client)
     workflow_id = workflow["id"]
@@ -228,7 +227,8 @@ def test_run_workflow_with_complex_scenario():
     nodes = [
         create_node(client, workflow_id, node_type="Start"),
         create_node(client, workflow_id, node_type="Message", message="Message node 1"),
-        create_node(client, workflow_id, node_type="Condition", message="Condition node", condition_expression="message == 'hello'"),
+        create_node(client, workflow_id, node_type="Condition", message="Condition node",
+                    condition_expression="message == 'hello'"),
         create_node(client, workflow_id, node_type="Message", message="Message node 2"),
         create_node(client, workflow_id, node_type="Message", message="Message node 3"),
         create_node(client, workflow_id, node_type="End"),
@@ -236,8 +236,8 @@ def test_run_workflow_with_complex_scenario():
     node_ids = [node["id"] for node in nodes]
 
     edges = [
-        {"start_node_id": node_ids[0], "end_node_id": node_ids[1], "status": "Yes"},
-        {"start_node_id": node_ids[1], "end_node_id": node_ids[2], "status": "Yes"},
+        {"start_node_id": node_ids[0], "end_node_id": node_ids[1], "status": None},
+        {"start_node_id": node_ids[1], "end_node_id": node_ids[2], "status": None},
         {"start_node_id": node_ids[2], "end_node_id": node_ids[3], "status": "Yes"},
         {"start_node_id": node_ids[2], "end_node_id": node_ids[4], "status": "No"},
         {"start_node_id": node_ids[3], "end_node_id": node_ids[5], "status": "Yes"},
@@ -246,6 +246,15 @@ def test_run_workflow_with_complex_scenario():
 
     for edge_data in edges:
         create_edge(client, workflow_id, edge_data["start_node_id"], edge_data["end_node_id"], edge_data["status"])
+    expected_path = [
+        {"id": node_ids[0], "type": "Start", "status": None, "message": None},
+        {"id": node_ids[1], "type": "Message", "status": None, "message": "Message node 1"},
+        {"id": node_ids[2], "type": "Condition", "status": None, "message": "Condition node"},
+        {"id": node_ids[4], "type": "Message", "status": None, "message": "Message node 2"},
+        {"id": node_ids[5], "type": "End", "status": None, "message": None},
+    ]
 
     response = client.post(f"/workflows/{workflow_id}/run/")
+    response_json = response.json()
     assert response.status_code == 200
+    assert "path" in response_json

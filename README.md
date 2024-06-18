@@ -2,6 +2,7 @@
 
 REST ful API for Workflow service.
 This project is a FastAPI-based API for managing workflows using graph concepts. The system allows the creation of four types of nodes and includes API development with FastAPI and Pydantic for handling web requests, integration with the networkX library for graph management, and the implementation of an algorithm to determine the path from the start node to the end node.
+You have ability to find the shortest option among several when you have several Start nodes and several End nodes.
 
 
 #### Features
