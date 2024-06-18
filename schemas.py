@@ -77,5 +77,3 @@ class Workflow(WorkflowBase):
 
     class Config:
         orm_mode = True
-
-
